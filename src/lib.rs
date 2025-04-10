@@ -204,7 +204,7 @@ pub fn start_state_display_thread(state: Arc<Mutex<State>>) {
     thread::spawn(move || -> ! {
         let sleep_time = time::Duration::from_millis(1_000);
         loop {
-            // reset the display
+            // Reset the display
             print!("{}", clear::All);
             print!("{}", cursor::Goto(0, 1));
             println!("Status...\n");
