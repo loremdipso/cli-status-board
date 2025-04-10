@@ -1,37 +1,36 @@
 use std::time::Duration;
 
-use cli_status_board::{State, Status, start_state_display_thread};
+use cli_status_board::{State, Status};
 
 fn main() {
     let state = State::new();
-    start_state_display_thread(state.clone());
+
+    {
+        _ = state.add_task("finished task", Status::Finished);
+        _ = state.add_task("error task", Status::Error);
+        _ = state.add_task("started task", Status::Started);
+        _ = state.add_task("queued task", Status::Queued);
+    }
 
     let tasks = (0..10)
         .into_iter()
         .map(|index| {
             let state = state.clone();
             std::thread::spawn(move || {
-                let key = format!("Key_{index}");
                 std::thread::sleep(Duration::from_secs(index));
-                if let Ok(mut state) = state.lock() {
-                    state.add_task(&key, Status::Queued);
-                }
+                let key = state.add_task(format!("Task {index}"), Status::Started);
                 std::thread::sleep(Duration::from_secs(index));
-                if let Ok(mut state) = state.lock() {
-                    for i in 0..10 {
-                        state.add_subtask(&key, format!("subkey_key_{i}"), Status::Started);
-                    }
-                }
-                for i in 0..10 {
-                    std::thread::sleep(Duration::from_secs(index));
-                    if let Ok(mut state) = state.lock() {
-                        state.update_subtask(&key, format!("subkey_key_{i}"), Status::Finished);
-                    }
+                let sub_tasks = (0..10)
+                    .into_iter()
+                    .map(|_| state.add_subtask(&key, Status::Started))
+                    .collect::<Vec<_>>();
+
+                for sub_task_id in sub_tasks {
+                    std::thread::sleep(Duration::from_secs(index + 1));
+                    state.update_subtask(&key, &sub_task_id, Status::Finished);
                 }
 
-                if let Ok(mut state) = state.lock() {
-                    state.update_task(&key, Status::Finished);
-                }
+                state.update_task(&key, Status::Finished);
             })
         })
         .collect::<Vec<_>>();
