@@ -70,9 +70,9 @@ impl State {
         self.add_task(error, Status::Error);
     }
 
-    pub fn add_task(&mut self, key: String, status: Status) {
+    pub fn add_task<S: ToString>(&mut self, key: S, status: Status) {
         self.task_map.entry(status).or_default().push(Task {
-            key,
+            key: key.to_string(),
             display_name: None,
             time: time::Instant::now(),
             substate: State::default(),
@@ -110,9 +110,10 @@ impl State {
     //     }
     // }
 
-    pub fn update_task(&mut self, key: String, new_status: Status) {
+    pub fn update_task<S: ToString>(&mut self, key: S, new_status: Status) {
         let mut overall_to_move = vec![];
 
+        let key = key.to_string();
         for (status, tasks) in self.task_map.iter_mut() {
             if *status == new_status {
                 continue;
@@ -134,21 +135,28 @@ impl State {
             .extend(overall_to_move);
     }
 
-    pub fn add_subtask(&mut self, key: &String, subkey: &String, status: Status) {
+    pub fn add_subtask<S1: ToString, S2: ToString>(&mut self, key: S1, subkey: S2, status: Status) {
+        let key = key.to_string();
         for (_, tasks) in self.task_map.iter_mut() {
             for task in tasks {
-                if task.key == *key {
-                    task.substate.add_task(subkey.clone(), status);
+                if task.key == key {
+                    task.substate.add_task(subkey.to_string(), status);
                 }
             }
         }
     }
 
-    pub fn update_subtask(&mut self, key: &String, subkey: &String, new_status: Status) {
+    pub fn update_subtask<S1: ToString, S2: ToString>(
+        &mut self,
+        key: S1,
+        subkey: S2,
+        new_status: Status,
+    ) {
+        let key = key.to_string();
         for (_, tasks) in self.task_map.iter_mut() {
             for task in tasks {
-                if task.key == *key {
-                    task.substate.update_task(subkey.into(), new_status);
+                if task.key == key {
+                    task.substate.update_task(subkey.to_string(), new_status);
                 }
             }
         }
