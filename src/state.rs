@@ -1,4 +1,4 @@
-use colored::{ColoredString, Colorize};
+use colored::Colorize;
 use std::sync::mpsc::Sender;
 use termion::{clear, cursor};
 
@@ -73,18 +73,10 @@ impl State {
                         internal_state.get_total(),
                     );
 
-                    internal_state.print_list(
-                        Status::Started,
-                        10,
-                        Some(|f: &str| f.bright_green()),
-                    );
-                    internal_state.print_list(
-                        Status::Queued,
-                        10,
-                        Some(|f: &str| f.bright_yellow()),
-                    );
-                    internal_state.print_list(Status::Error, 10, Some(|f: &str| f.bright_red()));
-                    internal_state.print_list(Status::Info, 10, None::<fn(&str) -> ColoredString>);
+                    internal_state.print_list(Status::Started, 10, |f: &str| f.bright_green());
+                    internal_state.print_list(Status::Queued, 10, |f: &str| f.bright_yellow());
+                    internal_state.print_list(Status::Error, 10, |f: &str| f.bright_red());
+                    internal_state.print_list(Status::Info, 10, |f: &str| f.into());
                 }
 
                 std::thread::sleep(sleep_time);

@@ -1,7 +1,11 @@
 use colored::ColoredString;
 use rustc_hash::FxHashMap;
 
-use crate::{Status, TaskId, task::Task};
+use crate::{
+    Status, TaskId,
+    column::{Column, ColumnAlign, ColumnConfig, ColumnFit},
+    task::Task,
+};
 
 #[derive(Default, Debug, PartialEq, Eq, Clone)]
 pub struct InternalState {
@@ -137,7 +141,7 @@ impl InternalState {
         }
     }
 
-    pub(crate) fn print_list<F>(&self, status: Status, max: usize, color_func: Option<F>)
+    pub(crate) fn print_list<F>(&self, status: Status, max: usize, color_func: F)
     where
         F: Fn(&str) -> ColoredString,
     {
@@ -145,27 +149,60 @@ impl InternalState {
             if jobs.len() > 0 {
                 println!("\n{:?} ({}):", status, jobs.len());
 
+                let mut columns = vec![
+                    // name
+                    Column::new(ColumnConfig {
+                        align: ColumnAlign::LEFT,
+                        fit: ColumnFit::MAX(20),
+                        left_padding: 4,
+                        right_padding: 1,
+                    }),
+                    // # subjob finished
+                    Column::new(ColumnConfig {
+                        align: ColumnAlign::RIGHT,
+                        fit: ColumnFit::NORMAL,
+                        left_padding: 3,
+                        right_padding: 1,
+                    }),
+                    // # subjob total
+                    Column::new(ColumnConfig {
+                        align: ColumnAlign::RIGHT,
+                        fit: ColumnFit::NORMAL,
+                        left_padding: 0,
+                        right_padding: 1,
+                    }),
+                ];
+
+                let mut num_rows = 0;
                 for job in jobs.iter().take(max) {
-                    let name = if let Some(display_name) = &job.display_name {
-                        display_name.to_string()
-                    } else {
-                        job.key.to_string()
-                    };
+                    let name = job
+                        .display_name
+                        .clone()
+                        .unwrap_or_else(|| job.key.to_string());
 
-                    if let Some(color_func) = &color_func {
-                        print!("\t{}", color_func(&name));
+                    columns[0].push(color_func(&name));
+                    if job.num_substate_total() == 0 {
+                        columns[1].push("".into());
+                        columns[2].push("".into());
                     } else {
-                        print!("\t{}", name);
+                        columns[1].push(format!("{} /", job.num_substate_finished()).into());
+                        columns[2].push(job.num_substate_total().to_string().into());
                     }
-
-                    let status = job.substate_status();
-                    if status.len() > 0 {
-                        print!(" {}", status);
-                    }
-                    println!();
+                    num_rows += 1;
                 }
+
                 if jobs.len() > max {
-                    println!("\t...");
+                    num_rows += 1;
+                    columns[0].push("...".into());
+                }
+
+                for row_index in 0..num_rows {
+                    let mut line = String::new();
+                    for column_index in 0..columns.len() {
+                        line += &format!("{}", columns[column_index].to_string(row_index));
+                    }
+                    print!("{line}");
+                    println!("");
                 }
             }
         }

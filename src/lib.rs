@@ -1,3 +1,4 @@
+mod column;
 mod internal_state;
 mod state;
 mod task;

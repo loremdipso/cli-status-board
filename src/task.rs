@@ -9,16 +9,14 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn substate_status(&self) -> String {
-        let num_finished = match self.substate.task_map.get(&Status::Finished) {
+    pub fn num_substate_total(&self) -> usize {
+        self.substate.get_total()
+    }
+
+    pub fn num_substate_finished(&self) -> usize {
+        match self.substate.task_map.get(&Status::Finished) {
             Some(v) => v.len(),
             None => 0,
-        };
-
-        let total = self.substate.get_total();
-        if total == 0 {
-            return "".into();
         }
-        return format!("({} / {})", num_finished, total);
     }
 }
