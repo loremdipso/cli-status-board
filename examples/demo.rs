@@ -1,9 +1,12 @@
 use std::time::Duration;
 
-use cli_status_board::{State, Status};
+use cli_status_board::{SBStateConfig, State, Status};
 
 fn main() {
-    let state = State::new(false);
+    let state = State::new(SBStateConfig {
+        silent: false,
+        ..Default::default()
+    });
 
     // The handles for these tasks are immediately dropped, so we automatically remove them.
     // Except for error/info, which we display for a little while before removing automatically.
@@ -40,10 +43,20 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
+    tasks.push(std::thread::spawn({
+        let state = state.clone();
+        move || {
+            let task_id = state.add_task(format!("Task with no children"), Status::Started);
+            std::thread::sleep(Duration::from_secs(10));
+            state.update_task(&task_id, Status::Finished);
+        }
+    }));
+
     tasks.push(std::thread::spawn(move || {
-        let task_id = state.add_task(format!("Task with no children"), Status::Started);
-        std::thread::sleep(Duration::from_secs(10));
-        state.update_task(&task_id, Status::Finished);
+        std::thread::sleep(Duration::from_secs(4));
+        state.info("Here's an informational message");
+        std::thread::sleep(Duration::from_secs(8));
+        state.info("Here's another one :)");
     }));
 
     for task in tasks {

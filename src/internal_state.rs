@@ -147,6 +147,7 @@ impl InternalState {
         max: usize,
         color_func: F,
         terminal_width: usize,
+        max_task_name_width: usize,
     ) where
         F: Fn(&str) -> ColoredString,
     {
@@ -158,7 +159,7 @@ impl InternalState {
                     // name
                     Column::new(ColumnConfig {
                         align: ColumnAlign::LEFT,
-                        fit: ColumnFit::MAX(20),
+                        fit: ColumnFit::MAX(max_task_name_width),
                         left_padding: 4,
                         right_padding: 1,
                     }),

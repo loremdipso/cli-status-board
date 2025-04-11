@@ -4,6 +4,7 @@ mod state;
 mod task;
 mod task_id;
 
+pub use state::SBStateConfig;
 pub use state::State;
 pub use task_id::TaskId;
 
@@ -15,6 +16,7 @@ pub enum Status {
     Error,
     Info,
 }
+
 impl Status {
     fn is_finished(&self) -> bool {
         match self {

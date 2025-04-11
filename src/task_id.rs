@@ -33,6 +33,13 @@ impl TaskId {
             maybe_sender: Some(Arc::new(sender)),
         }
     }
+
+    pub(crate) fn make_weak(&self) -> TaskId {
+        Self {
+            id: self.id,
+            maybe_sender: None,
+        }
+    }
 }
 
 impl Eq for TaskId {}
@@ -50,19 +57,12 @@ impl Display for TaskId {
 
 impl Drop for TaskId {
     fn drop(&mut self) {
-        if let Some(sender_rc) = &self.maybe_sender {
-            // This is about to drop, so let's go ahead and delete this task.
-            // I'm not exactly sure why 2 seems to be the right number here...
-            if Arc::strong_count(sender_rc) <= 2 {
-                sender_rc
+        if let Some(sender_rc) = self.maybe_sender.take() {
+            // This is about to drop, so let's go ahead and mark this task as "finished".
+            if let Some(sender) = Arc::into_inner(sender_rc) {
+                sender
                     // Don't pass the sender in order to avoid infinite loops
-                    .send(TaskEvent::UpdateTask(
-                        Self {
-                            id: self.id,
-                            maybe_sender: None,
-                        },
-                        Status::Finished,
-                    ))
+                    .send(TaskEvent::UpdateTask(self.make_weak(), Status::Finished))
                     .unwrap();
             }
         }
