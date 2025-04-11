@@ -1,8 +1,6 @@
+use crate::{Status, TaskId, internal_state::InternalState};
 use colored::Colorize;
 use std::sync::mpsc::Sender;
-use termion::{clear, cursor};
-
-use crate::{Status, TaskId, internal_state::InternalState};
 
 #[derive(Debug, Clone)]
 pub struct State {
@@ -54,8 +52,8 @@ impl State {
 
                 if should_refresh_display {
                     // Reset the display
-                    print!("{}", clear::All);
-                    print!("{}", cursor::Goto(0, 1));
+                    print!("{}", termion::clear::All);
+                    print!("{}", termion::cursor::Goto(0, 1));
 
                     internal_state.clear_old_entries(
                         std::time::Duration::from_secs(10),
@@ -73,10 +71,28 @@ impl State {
                         internal_state.get_total(),
                     );
 
-                    internal_state.print_list(Status::Started, 10, |f: &str| f.bright_green());
-                    internal_state.print_list(Status::Queued, 10, |f: &str| f.bright_yellow());
-                    internal_state.print_list(Status::Error, 10, |f: &str| f.bright_red());
-                    internal_state.print_list(Status::Info, 10, |f: &str| f.into());
+                    if let Ok((width, _height)) = termion::terminal_size() {
+                        let width = width as usize;
+                        internal_state.print_list(
+                            Status::Started,
+                            10,
+                            |f: &str| f.bright_green(),
+                            width,
+                        );
+                        internal_state.print_list(
+                            Status::Queued,
+                            10,
+                            |f: &str| f.bright_yellow(),
+                            width,
+                        );
+                        internal_state.print_list(
+                            Status::Error,
+                            10,
+                            |f: &str| f.bright_red(),
+                            width,
+                        );
+                        internal_state.print_list(Status::Info, 10, |f: &str| f.into(), width);
+                    }
                 }
 
                 std::thread::sleep(sleep_time);

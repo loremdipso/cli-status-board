@@ -141,8 +141,13 @@ impl InternalState {
         }
     }
 
-    pub(crate) fn print_list<F>(&self, status: Status, max: usize, color_func: F)
-    where
+    pub(crate) fn print_list<F>(
+        &self,
+        status: Status,
+        max: usize,
+        color_func: F,
+        terminal_width: usize,
+    ) where
         F: Fn(&str) -> ColoredString,
     {
         if let Some(jobs) = self.task_map.get(&status) {
@@ -172,6 +177,7 @@ impl InternalState {
                         right_padding: 1,
                     }),
                 ];
+                let mut progresses = Vec::new();
 
                 let mut num_rows = 0;
                 for job in jobs.iter().take(max) {
@@ -184,9 +190,13 @@ impl InternalState {
                     if job.num_substate_total() == 0 {
                         columns[1].push("".into());
                         columns[2].push("".into());
+                        progresses.push(None);
                     } else {
-                        columns[1].push(format!("{} /", job.num_substate_finished()).into());
-                        columns[2].push(job.num_substate_total().to_string().into());
+                        let total = job.num_substate_total();
+                        let finished = job.num_substate_finished();
+                        columns[1].push(format!("{} /", finished).into());
+                        columns[2].push(total.to_string().into());
+                        progresses.push(Some(finished as f32 / total as f32));
                     }
                     num_rows += 1;
                 }
@@ -198,13 +208,27 @@ impl InternalState {
 
                 for row_index in 0..num_rows {
                     let mut line = String::new();
+                    let mut line_len = 0;
                     for column_index in 0..columns.len() {
                         line += &format!("{}", columns[column_index].to_string(row_index));
+                        line_len += columns[column_index].line_len();
                     }
-                    print!("{line}");
-                    println!("");
+                    if row_index < progresses.len() {
+                        if let Some(progress) = progresses[row_index] {
+                            line += &get_progress_bar(
+                                progress,
+                                terminal_width.checked_sub(line_len).unwrap_or_default(),
+                            );
+                        }
+                    }
+                    println!("{line}");
                 }
             }
         }
     }
+}
+
+fn get_progress_bar(progress: f32, available_width: usize) -> String {
+    let width = (progress * available_width as f32).round() as usize;
+    format!("{:=>width$}", ">")
 }
