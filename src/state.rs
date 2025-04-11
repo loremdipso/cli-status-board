@@ -3,7 +3,7 @@ use colored::Colorize;
 use std::{sync::mpsc::Sender, time::Duration};
 
 #[derive(Debug, Clone)]
-pub struct State {
+pub struct SBState {
     sender: Sender<TaskEvent>,
 }
 
@@ -14,11 +14,11 @@ pub struct SBStateConfig {
     // Not terribly useful, apart from testing.
     pub silent: bool,
 
-    // Custom refresh rate for the status board. Defaults to 1 second.
+    // Custom refresh rate for the status board. Defaults to 250 ms.
     pub refresh_rate: Duration,
 
     // If set then we'll only show the first n characters of a task's name.
-    // If unset then we'll restrict it to 1/3 of the available screen.
+    // If unset then we'll restrict it to 1/2 of the available screen.
     // If the task's name is too long we'll truncate with a '...'.
     pub max_task_name_width: Option<usize>,
 }
@@ -27,7 +27,7 @@ impl Default for SBStateConfig {
     fn default() -> Self {
         Self {
             silent: false,
-            refresh_rate: Duration::from_secs(1),
+            refresh_rate: Duration::from_millis(250),
             max_task_name_width: None,
         }
     }
@@ -44,7 +44,7 @@ pub(crate) enum TaskEvent {
     UpdateSubTask(TaskId, TaskId, Status),
 }
 
-impl State {
+impl SBState {
     pub fn new(config: SBStateConfig) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel::<TaskEvent>();
 
@@ -105,32 +105,26 @@ impl State {
                     if let Ok((width, _height)) = termion::terminal_size() {
                         let width = width as usize;
                         let max_task_name_width =
-                            config.max_task_name_width.unwrap_or(width / 3).min(width);
-                        internal_state.print_list(
+                            config.max_task_name_width.unwrap_or(width / 2).min(width);
+                        internal_state.print_simple(Status::Info, 10, |f: &str| f.into(), width);
+                        internal_state.print_complex(
                             Status::Started,
                             10,
                             |f: &str| f.bright_green(),
                             width,
                             max_task_name_width,
                         );
-                        internal_state.print_list(
+                        internal_state.print_complex(
                             Status::Queued,
                             10,
                             |f: &str| f.bright_yellow(),
                             width,
                             max_task_name_width,
                         );
-                        internal_state.print_list(
+                        internal_state.print_complex(
                             Status::Error,
                             10,
                             |f: &str| f.bright_red(),
-                            width,
-                            max_task_name_width,
-                        );
-                        internal_state.print_list(
-                            Status::Info,
-                            10,
-                            |f: &str| f.into(),
                             width,
                             max_task_name_width,
                         );
@@ -145,12 +139,26 @@ impl State {
         Self { sender }
     }
 
-    pub fn error<S: ToString>(&self, display_name: S) -> TaskId {
-        self.add_task(display_name, Status::Error)
+    pub fn error<S: ToString>(&self, display_name: S) {
+        let task_id = TaskId::new();
+        self.sender
+            .send(TaskEvent::AddTask(
+                task_id.clone(),
+                Some(display_name.to_string()),
+                Status::Error,
+            ))
+            .unwrap();
     }
 
-    pub fn info<S: ToString>(&self, display_name: S) -> TaskId {
-        self.add_task(display_name, Status::Info)
+    pub fn info<S: ToString>(&self, display_name: S) {
+        let task_id = TaskId::new();
+        self.sender
+            .send(TaskEvent::AddTask(
+                task_id.clone(),
+                Some(display_name.to_string()),
+                Status::Info,
+            ))
+            .unwrap();
     }
 
     pub fn add_task<S: ToString>(&self, display_name: S, status: Status) -> TaskId {

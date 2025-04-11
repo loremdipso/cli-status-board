@@ -2,6 +2,7 @@
 name = "cli-status-board"
 version = "0.2.0"
 edition = "2024"
+exclude = ["images/*"]
 
 [dependencies]
 colored = "3.0.0"

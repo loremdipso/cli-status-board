@@ -87,4 +87,8 @@ impl Column {
     pub(crate) fn line_len(&self) -> usize {
         self.longest + self.config.left_padding + self.config.right_padding
     }
+
+    pub(crate) fn len(&self) -> usize {
+        self.data.len()
+    }
 }

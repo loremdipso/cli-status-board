@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use cli_status_board::{SBStateConfig, State, Status};
+use cli_status_board::{SBState, SBStateConfig, Status};
 
 fn main() {
-    let state = State::new(SBStateConfig {
+    let state = SBState::new(SBStateConfig {
         silent: false,
         ..Default::default()
     });

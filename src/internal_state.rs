@@ -77,7 +77,6 @@ impl InternalState {
 
     pub(crate) fn update_task(&mut self, key: TaskId, new_status: Status) {
         let mut overall_to_move = vec![];
-
         for (status, tasks) in self.task_map.iter_mut() {
             if *status == new_status {
                 continue;
@@ -141,7 +140,42 @@ impl InternalState {
         }
     }
 
-    pub(crate) fn print_list<F>(
+    pub(crate) fn print_simple<F>(
+        &self,
+        status: Status,
+        max: usize,
+        color_func: F,
+        terminal_width: usize,
+    ) where
+        F: Fn(&str) -> ColoredString,
+    {
+        if let Some(jobs) = self.task_map.get(&status) {
+            if jobs.len() > 0 {
+                println!("\n{:?} ({}):", status, jobs.len());
+
+                let mut data = Column::new(ColumnConfig {
+                    align: ColumnAlign::LEFT,
+                    fit: ColumnFit::MAX(terminal_width),
+                    left_padding: 4,
+                    right_padding: 1,
+                });
+                for job in jobs.iter().take(max) {
+                    let name = job
+                        .display_name
+                        .clone()
+                        .unwrap_or_else(|| job.key.to_string());
+
+                    data.push(color_func(&name));
+                }
+
+                for row in 0..data.len() {
+                    println!("{}", data.to_string(row));
+                }
+            }
+        }
+    }
+
+    pub(crate) fn print_complex<F>(
         &self,
         status: Status,
         max: usize,

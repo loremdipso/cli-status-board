@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use cli_status_board::{SBStateConfig, State, Status};
+use cli_status_board::{SBStateConfig, SBState, Status};
 
 fn main() {
-    let state = State::new(SBStateConfig {
+    let state = SBState::new(SBStateConfig {
         silent: false,
         ..Default::default()
     });
@@ -15,9 +15,9 @@ fn main() {
             let task_id = state.add_task("finished task", Status::Finished);
             state.add_subtask(&task_id, Status::Started);
         }
-        _ = state.add_task("error task", Status::Error);
-        _ = state.add_task("started task", Status::Started);
-        _ = state.add_task("queued task", Status::Queued);
+        let _ = state.add_task("error task", Status::Error);
+        let _ = state.add_task("started task", Status::Started);
+        let _ = state.add_task("queued task", Status::Queued);
     }
 
     let mut tasks = (0..10)
