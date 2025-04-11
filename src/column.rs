@@ -57,10 +57,6 @@ impl Column {
         self.data.push(value);
     }
 
-    pub fn len(&self) -> usize {
-        self.data.len()
-    }
-
     pub fn to_string(&mut self, index: usize) -> String {
         if index >= self.data.len() {
             return String::new();

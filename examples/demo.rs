@@ -3,7 +3,7 @@ use std::time::Duration;
 use cli_status_board::{State, Status};
 
 fn main() {
-    let state = State::new();
+    let state = State::new(false);
 
     // The handles for these tasks are immediately dropped, so we automatically remove them.
     // Except for error/info, which we display for a little while before removing automatically.

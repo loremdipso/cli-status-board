@@ -102,6 +102,14 @@ impl State {
         Self { sender }
     }
 
+    pub fn error<S: ToString>(&self, display_name: S) -> TaskId {
+        self.add_task(display_name, Status::Error)
+    }
+
+    pub fn info<S: ToString>(&self, display_name: S) -> TaskId {
+        self.add_task(display_name, Status::Info)
+    }
+
     pub fn add_task<S: ToString>(&self, display_name: S, status: Status) -> TaskId {
         let task_id = TaskId::new_with_sender(self.sender.clone());
         self.sender
