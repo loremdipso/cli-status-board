@@ -10,7 +10,7 @@ pub struct State {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-enum TaskEvent {
+pub(crate) enum TaskEvent {
     AddTask(TaskId, Option<String>, Status),
     SetTaskDisplayName(TaskId, String),
     UpdateTask(TaskId, Status),
@@ -30,6 +30,7 @@ impl State {
             loop {
                 for event in receiver.try_iter() {
                     should_refresh_display = true;
+                    dbg!(&event);
                     match event {
                         TaskEvent::AddTask(key, maybe_display_name, status) => {
                             internal_state.add_task(key.clone(), maybe_display_name, status);
@@ -60,7 +61,7 @@ impl State {
 
                     internal_state.clear_old_entries(
                         std::time::Duration::from_secs(10),
-                        &[Status::Error, Status::Info][..],
+                        &[Status::Error, Status::Info],
                     );
 
                     let num_finished = match internal_state.task_map.get(&Status::Finished) {
@@ -96,7 +97,7 @@ impl State {
     }
 
     pub fn add_task<S: ToString>(&self, display_name: S, status: Status) -> TaskId {
-        let task_id = TaskId::new();
+        let task_id = TaskId::new_with_sender(self.sender.clone());
         self.sender
             .send(TaskEvent::AddTask(
                 task_id.clone(),

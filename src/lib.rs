@@ -14,3 +14,14 @@ pub enum Status {
     Error,
     Info,
 }
+impl Status {
+    fn is_finished(&self) -> bool {
+        match self {
+            Status::Queued => false,
+            Status::Started => false,
+            Status::Finished => true,
+            Status::Info => true,
+            Status::Error => true,
+        }
+    }
+}

@@ -43,13 +43,11 @@ impl InternalState {
     }
 
     pub(crate) fn delete_task(&mut self, key: TaskId) {
-        for (_, tasks) in self.task_map.iter_mut() {
-            tasks.retain_mut(|task| -> bool {
-                if task.key == key {
-                    return false;
-                }
-                return true;
-            });
+        for (status, tasks) in self.task_map.iter_mut() {
+            // Only delete tasks that aren't finished yet
+            if !status.is_finished() {
+                tasks.retain(|task| if task.key == key { false } else { true });
+            }
         }
     }
 
