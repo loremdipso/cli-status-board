@@ -2,7 +2,7 @@
 
 Quickly visualize ongoing asynchronous tasks on the command line.
 
-![demo](./images/demo.gif)
+![demo](images/demo.gif)
 
 ## Usage
 
