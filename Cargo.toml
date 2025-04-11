@@ -7,7 +7,7 @@ version = "0.2.0"
 edition = "2024"
 license = "MIT"
 keywords = ["cli", "utility"]
-exclude = ["images/*"]
+include = ["src/**", "README.md", "LICENSE"]
 
 [dependencies]
 colored = "3.0.0"
