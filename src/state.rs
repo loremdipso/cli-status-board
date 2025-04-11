@@ -30,7 +30,6 @@ impl State {
             loop {
                 for event in receiver.try_iter() {
                     should_refresh_display = true;
-                    dbg!(&event);
                     match event {
                         TaskEvent::AddTask(key, maybe_display_name, status) => {
                             internal_state.add_task(key.clone(), maybe_display_name, status);
@@ -57,7 +56,6 @@ impl State {
                     // Reset the display
                     print!("{}", clear::All);
                     print!("{}", cursor::Goto(0, 1));
-                    println!("Status...\n");
 
                     internal_state.clear_old_entries(
                         std::time::Duration::from_secs(10),
@@ -70,7 +68,7 @@ impl State {
                     };
 
                     println!(
-                        "{} / {}",
+                        "Finished tasks: {} / {}",
                         format!("{}", num_finished).bright_green(),
                         internal_state.get_total(),
                     );
