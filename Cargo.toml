@@ -1,7 +1,12 @@
 [package]
 name = "cli-status-board"
+description = "Simple and thread-safe CLI visualization of async jobs"
+homepage = "https://github.com/loremdipso/cli-status-board"
+readme = "README.md"
 version = "0.2.0"
 edition = "2024"
+license = "MIT"
+keywords = ["cli", "utility"]
 exclude = ["images/*"]
 
 [dependencies]

@@ -7,7 +7,6 @@ Quickly visualize ongoing asynchronous tasks on the command line.
 ## Usage
 
 ```rust
-![til](./app/assets/images/banner.png)
 use cli_status_board::{SBStateConfig, SBState, Status};
 
 fn main() {
