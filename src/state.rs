@@ -18,7 +18,7 @@ pub(crate) enum TaskEvent {
 }
 
 impl State {
-    pub fn new() -> Self {
+    pub fn new(silent: bool) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
 
         std::thread::spawn(move || -> ! {
@@ -50,7 +50,7 @@ impl State {
                     }
                 }
 
-                if should_refresh_display {
+                if !silent && should_refresh_display {
                     // Reset the display
                     print!("{}", termion::clear::All);
                     print!("{}", termion::cursor::Goto(0, 1));
