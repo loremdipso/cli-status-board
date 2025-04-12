@@ -1,10 +1,11 @@
 use std::time::Duration;
 
-use cli_status_board::{SBStateConfig, SBState, Status};
+use cli_status_board::{SBState, SBStateConfig, Status, TaskNameWidth};
 
 fn main() {
     let state = SBState::new(SBStateConfig {
         silent: false,
+        task_name_width: TaskNameWidth::ExactRatio(0.25),
         ..Default::default()
     });
 

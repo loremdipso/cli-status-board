@@ -140,48 +140,13 @@ impl InternalState {
         }
     }
 
-    pub(crate) fn print_simple<F>(
+    pub(crate) fn print_list<F>(
         &self,
         status: Status,
         max: usize,
         color_func: F,
         terminal_width: usize,
-    ) where
-        F: Fn(&str) -> ColoredString,
-    {
-        if let Some(jobs) = self.task_map.get(&status) {
-            if jobs.len() > 0 {
-                println!("\n{:?} ({}):", status, jobs.len());
-
-                let mut data = Column::new(ColumnConfig {
-                    align: ColumnAlign::LEFT,
-                    fit: ColumnFit::MAX(terminal_width),
-                    left_padding: 4,
-                    right_padding: 1,
-                });
-                for job in jobs.iter().take(max) {
-                    let name = job
-                        .display_name
-                        .clone()
-                        .unwrap_or_else(|| job.key.to_string());
-
-                    data.push(color_func(&name));
-                }
-
-                for row in 0..data.len() {
-                    println!("{}", data.to_string(row));
-                }
-            }
-        }
-    }
-
-    pub(crate) fn print_complex<F>(
-        &self,
-        status: Status,
-        max: usize,
-        color_func: F,
-        terminal_width: usize,
-        max_task_name_width: usize,
+        task_name_fit: ColumnFit,
     ) where
         F: Fn(&str) -> ColoredString,
     {
@@ -193,7 +158,7 @@ impl InternalState {
                     // name
                     Column::new(ColumnConfig {
                         align: ColumnAlign::LEFT,
-                        fit: ColumnFit::MAX(max_task_name_width),
+                        fit: task_name_fit,
                         left_padding: 4,
                         right_padding: 1,
                     }),
@@ -222,6 +187,7 @@ impl InternalState {
                         .unwrap_or_else(|| job.key.to_string());
 
                     columns[0].push(color_func(&name));
+
                     if job.num_substate_total() == 0 {
                         columns[1].push("".into());
                         columns[2].push("".into());
@@ -245,10 +211,15 @@ impl InternalState {
                     let mut line = String::new();
                     let mut line_len = 0;
                     for column_index in 0..columns.len() {
-                        line += &format!("{}", columns[column_index].to_string(row_index));
                         line_len += columns[column_index].line_len();
+                        if line_len > terminal_width {
+                            break;
+                        }
+
+                        line += &format!("{}", columns[column_index].to_string(row_index));
                     }
-                    if row_index < progresses.len() {
+
+                    if line_len < terminal_width && row_index < progresses.len() {
                         if let Some(progress) = progresses[row_index] {
                             line += &get_progress_bar(
                                 progress,
@@ -256,6 +227,7 @@ impl InternalState {
                             );
                         }
                     }
+
                     println!("{line}");
                 }
             }

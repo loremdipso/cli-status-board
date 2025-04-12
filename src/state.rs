@@ -1,4 +1,4 @@
-use crate::{Status, TaskId, internal_state::InternalState};
+use crate::{Status, TaskId, column::ColumnFit, internal_state::InternalState};
 use colored::Colorize;
 use std::{sync::mpsc::Sender, time::Duration};
 
@@ -10,25 +10,42 @@ pub struct SBState {
 // Configuration for the status board.
 #[derive(Debug, Clone)]
 pub struct SBStateConfig {
+    // Defines how we should render the task name.
+    // If unset then we'll restrict it to 50% of the available screen.
+    pub task_name_width: TaskNameWidth,
+
+    // Custom refresh rate for the status board. Defaults to 30 ms.
+    // Since this only actually rerenders when the terminal size has
+    // changed or there's a pending event this tends to be fine, but
+    // you can turn this down for better performance.
+    pub refresh_rate: Duration,
+
     // If true then the status board won't actually render anything.
     // Not terribly useful, apart from testing.
     pub silent: bool,
+}
 
-    // Custom refresh rate for the status board. Defaults to 250 ms.
-    pub refresh_rate: Duration,
+#[derive(Debug, Clone)]
+pub enum TaskNameWidth {
+    // Take up at least x% of the screen, growing if necessary
+    Min(f32),
 
-    // If set then we'll only show the first n characters of a task's name.
-    // If unset then we'll restrict it to 1/2 of the available screen.
-    // If the task's name is too long we'll truncate with a '...'.
-    pub max_task_name_width: Option<usize>,
+    // Take up at most x% of the screen, shrinking if possible
+    Max(f32),
+
+    // Take up exactly x% of the screen
+    ExactRatio(f32),
+
+    // Take up exactly x chars of the screen
+    ExactChars(usize),
 }
 
 impl Default for SBStateConfig {
     fn default() -> Self {
         Self {
             silent: false,
-            refresh_rate: Duration::from_millis(250),
-            max_task_name_width: None,
+            refresh_rate: Duration::from_millis(30),
+            task_name_width: TaskNameWidth::Max(0.5),
         }
     }
 }
@@ -51,6 +68,8 @@ impl SBState {
         std::thread::spawn(move || -> ! {
             let mut internal_state = InternalState::default();
             let mut should_refresh_display = true;
+            let mut old_width = 0;
+            let mut old_height = 0;
             loop {
                 for event in receiver.try_iter() {
                     should_refresh_display = true;
@@ -81,52 +100,75 @@ impl SBState {
                     }
                 }
 
-                if !config.silent && should_refresh_display {
-                    // Reset the display
-                    print!("{}", termion::clear::All);
-                    print!("{}", termion::cursor::Goto(0, 1));
+                if let Ok((width, height)) = termion::terminal_size() {
+                    if width != old_width || height != old_height {
+                        old_height = height;
+                        old_width = width;
+                        should_refresh_display = true;
+                    }
 
-                    internal_state.clear_old_entries(
-                        std::time::Duration::from_secs(10),
-                        &[Status::Error, Status::Info],
-                    );
+                    if !config.silent && should_refresh_display {
+                        // Reset the display
+                        print!("{}", termion::clear::All);
+                        print!("{}", termion::cursor::Goto(0, 1));
 
-                    let num_finished = match internal_state.task_map.get(&Status::Finished) {
-                        Some(v) => v.len(),
-                        None => 0,
-                    };
+                        internal_state.clear_old_entries(
+                            std::time::Duration::from_secs(10),
+                            &[Status::Error, Status::Info],
+                        );
 
-                    println!(
-                        "Finished tasks: {} / {}",
-                        format!("{}", num_finished).bright_green(),
-                        internal_state.get_total(),
-                    );
+                        let num_finished = match internal_state.task_map.get(&Status::Finished) {
+                            Some(v) => v.len(),
+                            None => 0,
+                        };
 
-                    if let Ok((width, _height)) = termion::terminal_size() {
+                        println!(
+                            "Finished tasks: {} / {}",
+                            format!("{}", num_finished).bright_green(),
+                            internal_state.get_total(),
+                        );
+
                         let width = width as usize;
-                        let max_task_name_width =
-                            config.max_task_name_width.unwrap_or(width / 2).min(width);
-                        internal_state.print_simple(Status::Info, 10, |f: &str| f.into(), width);
-                        internal_state.print_complex(
+                        let task_name_fit = match config.task_name_width {
+                            TaskNameWidth::Min(max) => {
+                                ColumnFit::MIN((max.min(1.0) * width as f32) as usize)
+                            }
+                            TaskNameWidth::Max(max) => {
+                                ColumnFit::MAX((max.min(1.0) * width as f32) as usize)
+                            }
+                            TaskNameWidth::ExactRatio(max) => {
+                                ColumnFit::EXACT((max.min(1.0) * width as f32) as usize)
+                            }
+                            TaskNameWidth::ExactChars(max) => ColumnFit::EXACT(max.min(width)),
+                        };
+
+                        internal_state.print_list(
+                            Status::Info,
+                            10,
+                            |f: &str| f.into(),
+                            width,
+                            ColumnFit::EXACT(width),
+                        );
+                        internal_state.print_list(
                             Status::Started,
                             10,
                             |f: &str| f.bright_green(),
                             width,
-                            max_task_name_width,
+                            task_name_fit,
                         );
-                        internal_state.print_complex(
+                        internal_state.print_list(
                             Status::Queued,
                             10,
                             |f: &str| f.bright_yellow(),
                             width,
-                            max_task_name_width,
+                            task_name_fit,
                         );
-                        internal_state.print_complex(
+                        internal_state.print_list(
                             Status::Error,
                             10,
                             |f: &str| f.bright_red(),
                             width,
-                            max_task_name_width,
+                            task_name_fit,
                         );
                     }
                 }
