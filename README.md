@@ -10,10 +10,7 @@ Quickly visualize ongoing asynchronous tasks on the command line.
 use cli_status_board::{SBStateConfig, SBState, Status};
 
 fn main() {
-    let state = SBState::new(SBStateConfig {
-        silent: false,
-        ..Default::default()
-    });
+    let state = SBState::new(SBStateConfig::default());
 
     // Add some arbitrary task with an initial status.
     let task_id = state.add_task(format!("Some super basic task"), Status::Queued);
