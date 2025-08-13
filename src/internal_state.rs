@@ -1,4 +1,4 @@
-use colored::ColoredString;
+use colored::{ColoredString, Colorize};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -208,34 +208,65 @@ impl InternalState {
                 }
 
                 for row_index in 0..num_rows {
-                    let mut line = String::new();
-                    let mut line_len = 0;
-                    for column_index in 0..columns.len() {
-                        line_len += columns[column_index].line_len();
-                        if line_len > terminal_width {
-                            break;
-                        }
-
-                        line += &format!("{}", columns[column_index].to_string(row_index));
-                    }
-
-                    if line_len < terminal_width && row_index < progresses.len() {
-                        if let Some(progress) = progresses[row_index] {
-                            line += &get_progress_bar(
-                                progress,
-                                terminal_width.checked_sub(line_len).unwrap_or_default(),
-                            );
-                        }
-                    }
-
-                    println!("{line}");
+                    println!(
+                        "{}",
+                        draw_line(
+                            terminal_width,
+                            &mut columns,
+                            row_index,
+                            progresses
+                                .get(row_index)
+                                .map(|e| e.to_owned())
+                                .unwrap_or_default()
+                        )
+                    );
                 }
             }
         }
     }
 }
 
+fn draw_line(
+    terminal_width: usize,
+    columns: &mut [Column],
+    row_index: usize,
+    maybe_progress: Option<f32>,
+) -> String {
+    let mut line = String::new();
+    let mut line_len = 0;
+    for column_index in 0..columns.len() {
+        line_len += columns[column_index].line_len();
+        if line_len > terminal_width {
+            break;
+        }
+
+        line += &format!("{}", columns[column_index].to_string(row_index));
+    }
+
+    if let Some(progress) = maybe_progress {
+        line += &get_progress_bar(
+            progress,
+            terminal_width.checked_sub(line_len).unwrap_or_default(),
+        );
+    }
+
+    line
+}
+
 fn get_progress_bar(progress: f32, available_width: usize) -> String {
-    let width = (progress * available_width as f32).round() as usize;
-    format!("{:=>width$}", ">")
+    if available_width < 4 {
+        return String::new();
+    }
+    let available_width = available_width - 2;
+
+    let progress = progress.clamp(0.0, 1.0);
+    let bar_width = (progress * available_width as f32).round() as usize;
+    let remaining_width = available_width - bar_width.max(1);
+
+    format!(
+        "{}{}{}",
+        "[",
+        format!("{:=>bar_width$}", ">").bright_blue(),
+        format!("{:.>remaining_width$}", "]"),
+    )
 }

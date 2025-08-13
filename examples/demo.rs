@@ -47,6 +47,18 @@ fn main() {
     tasks.push(std::thread::spawn({
         let state = state.clone();
         move || {
+            let task_id = state.add_task(
+                format!("Task with looooooooooooooooooooooooooooooooooooooong message"),
+                Status::Started,
+            );
+            std::thread::sleep(Duration::from_secs(10));
+            state.update_task(&task_id, Status::Finished);
+        }
+    }));
+
+    tasks.push(std::thread::spawn({
+        let state = state.clone();
+        move || {
             let task_id = state.add_task(format!("Task with no children"), Status::Started);
             std::thread::sleep(Duration::from_secs(10));
             state.update_task(&task_id, Status::Finished);
