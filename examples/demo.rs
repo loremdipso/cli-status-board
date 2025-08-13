@@ -6,6 +6,7 @@ fn main() {
     let state = SBState::new(SBStateConfig {
         silent: false,
         task_name_width: TaskNameWidth::ExactRatio(0.25),
+        grow_if_no_progress: false,
         ..Default::default()
     });
 
@@ -48,7 +49,7 @@ fn main() {
         let state = state.clone();
         move || {
             let task_id = state.add_task(
-                format!("Task with looooooooooooooooooooooooooooooooooooooong message"),
+                format!("Task with looooooooooooooooooooooooooooooooooooooong message. I mean, it's soooooooooooooooooooooooooooooooo loooooooooooooooooooooooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggg"),
                 Status::Started,
             );
             std::thread::sleep(Duration::from_secs(10));

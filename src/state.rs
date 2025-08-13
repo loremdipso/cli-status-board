@@ -23,6 +23,10 @@ pub struct SBStateConfig {
     // If true then the status board won't actually render anything.
     // Not terribly useful, apart from testing.
     pub silent: bool,
+
+    // In the case that a line doesn't have any progress, should we grow it?
+    // Default to true
+    pub grow_if_no_progress: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +50,7 @@ impl Default for SBStateConfig {
             silent: false,
             refresh_rate: Duration::from_millis(30),
             task_name_width: TaskNameWidth::Max(0.5),
+            grow_if_no_progress: true,
         }
     }
 }
@@ -148,6 +153,7 @@ impl SBState {
                             |f: &str| f.into(),
                             width,
                             ColumnFit::EXACT(width),
+                            &config,
                         );
                         internal_state.print_list(
                             Status::Started,
@@ -155,6 +161,7 @@ impl SBState {
                             |f: &str| f.bright_green(),
                             width,
                             task_name_fit,
+                            &config,
                         );
                         internal_state.print_list(
                             Status::Queued,
@@ -162,6 +169,7 @@ impl SBState {
                             |f: &str| f.bright_yellow(),
                             width,
                             task_name_fit,
+                            &config,
                         );
                         internal_state.print_list(
                             Status::Error,
@@ -169,6 +177,7 @@ impl SBState {
                             |f: &str| f.bright_red(),
                             width,
                             task_name_fit,
+                            &config,
                         );
                     }
                 }

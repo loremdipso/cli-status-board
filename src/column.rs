@@ -3,6 +3,7 @@ use colored::ColoredString;
 #[derive(Clone, Debug)]
 pub struct Column {
     data: Vec<ColoredString>,
+    original_data: Vec<ColoredString>,
     config: ColumnConfig,
     pub longest: usize,
 }
@@ -34,11 +35,14 @@ impl Column {
         Self {
             config,
             data: Vec::new(),
+            original_data: Vec::new(),
             longest: 0,
         }
     }
 
     pub fn push(&mut self, mut value: ColoredString) {
+        self.original_data.push(value.clone());
+
         match self.config.fit {
             ColumnFit::EXACT(len) => {
                 let len = len - self.config.left_padding - self.config.right_padding;
@@ -117,7 +121,56 @@ impl Column {
         }
     }
 
+    pub fn to_wide_string(&mut self, index: usize, available_width: usize) -> String {
+        if index >= self.original_data.len()
+            || available_width < (self.config.left_padding + self.config.right_padding).max(3)
+        {
+            return String::new();
+        }
+
+        let available_width =
+            available_width - self.config.left_padding - self.config.right_padding;
+
+        let mut value = self.original_data[index].clone();
+        if value.input.len() > available_width {
+            value.input = value
+                .input
+                .chars()
+                .take(available_width - 3)
+                .chain("...".chars())
+                .collect();
+        }
+
+        match self.config.align {
+            ColumnAlign::LEFT => format!(
+                "{:left_padding$}{: <width$}{:right_padding$}",
+                "",
+                value,
+                "",
+                left_padding = self.config.left_padding,
+                width = available_width,
+                right_padding = self.config.right_padding
+            ),
+            ColumnAlign::RIGHT => format!(
+                "{:left_padding$}{: >width$}{:right_padding$}",
+                "",
+                value,
+                "",
+                left_padding = self.config.left_padding,
+                width = available_width,
+                right_padding = self.config.right_padding
+            ),
+        }
+    }
+
     pub(crate) fn line_len(&self) -> usize {
         self.longest + self.config.left_padding + self.config.right_padding
+    }
+
+    pub(crate) fn is_empty(&self, row_index: usize) -> bool {
+        match self.data.get(row_index) {
+            Some(data) => data.len() == 0,
+            None => true,
+        }
     }
 }

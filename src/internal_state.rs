@@ -2,7 +2,7 @@ use colored::{ColoredString, Colorize};
 use rustc_hash::FxHashMap;
 
 use crate::{
-    Status, TaskId,
+    SBStateConfig, Status, TaskId,
     column::{Column, ColumnAlign, ColumnConfig, ColumnFit},
     task::Task,
 };
@@ -147,6 +147,7 @@ impl InternalState {
         color_func: F,
         terminal_width: usize,
         task_name_fit: ColumnFit,
+        config: &SBStateConfig,
     ) where
         F: Fn(&str) -> ColoredString,
     {
@@ -217,7 +218,8 @@ impl InternalState {
                             progresses
                                 .get(row_index)
                                 .map(|e| e.to_owned())
-                                .unwrap_or_default()
+                                .unwrap_or_default(),
+                            config
                         )
                     );
                 }
@@ -231,23 +233,44 @@ fn draw_line(
     columns: &mut [Column],
     row_index: usize,
     maybe_progress: Option<f32>,
+    config: &SBStateConfig,
 ) -> String {
     let mut line = String::new();
     let mut line_len = 0;
-    for column_index in 0..columns.len() {
-        line_len += columns[column_index].line_len();
-        if line_len > terminal_width {
-            break;
-        }
-
-        line += &format!("{}", columns[column_index].to_string(row_index));
-    }
 
     if let Some(progress) = maybe_progress {
+        for column_index in 0..columns.len() {
+            line_len += columns[column_index].line_len();
+            if line_len > terminal_width {
+                break;
+            }
+
+            line += &format!("{}", columns[column_index].to_string(row_index));
+        }
+
         line += &get_progress_bar(
             progress,
             terminal_width.checked_sub(line_len).unwrap_or_default(),
         );
+    } else {
+        let mut effective_columns = columns
+            .iter_mut()
+            .filter(|c| !c.is_empty(row_index))
+            .collect::<Vec<_>>();
+        let num_effective_columns = effective_columns.len();
+        for (index, column) in effective_columns.iter_mut().enumerate() {
+            if index == num_effective_columns - 1 && config.grow_if_no_progress {
+                line += &format!(
+                    "{}",
+                    column.to_wide_string(
+                        row_index,
+                        terminal_width.checked_sub(line.len()).unwrap_or_default()
+                    )
+                );
+            } else {
+                line += &format!("{}", column.to_string(row_index));
+            }
+        }
     }
 
     line
