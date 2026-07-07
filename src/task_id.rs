@@ -13,7 +13,7 @@ static LATEST_ID: AtomicI32 = AtomicI32::new(0);
 
 #[derive(Debug, Clone)]
 pub struct TaskId {
-    id: i32,
+    pub id: i32,
     maybe_sender: Option<Arc<Sender<TaskEvent>>>,
 }
 
