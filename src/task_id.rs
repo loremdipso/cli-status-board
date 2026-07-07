@@ -18,7 +18,7 @@ pub struct TaskId {
 }
 
 impl TaskId {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let id = LATEST_ID.fetch_add(1, Ordering::SeqCst) + 1;
         Self {
             id,
